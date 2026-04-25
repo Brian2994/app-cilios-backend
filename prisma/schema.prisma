@@ -21,6 +21,7 @@ model User {
   createdAt    DateTime      @default(now())
   clients      Client[]
   appointments Appointment[]
+  services     Service[]
 }
 
 model Client {
@@ -37,16 +38,32 @@ model Client {
 }
 
 model Appointment {
-  id      String   @id @default(uuid())
-  date    DateTime
-  service String
-  status  String   @default("scheduled")
+  id       String   @id @default(uuid())
+  date     DateTime
+  duration Int      @default(60)
+
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id])
 
   clientId String
   client   Client @relation(fields: [clientId], references: [id])
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Service {
+  id       String @id @default(uuid())
+  name     String
+  price    Float
+  duration Int    @default(60)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  appointments Appointment[]
 
   createdAt DateTime @default(now())
 }
