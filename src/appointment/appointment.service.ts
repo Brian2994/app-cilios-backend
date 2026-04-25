@@ -23,18 +23,21 @@ export class AppointmentService {
         });
 
         if (conflict) {
-            throw new Error('Já existe um agendamento nesse horário');
+            throw new BadRequestException('Já existe um agendamento nesse horário');
         }
 
         return this.prisma.appointment.create({
             data: {
                 date: start,
                 duration,
-                service: data.service,
-                price: data.price,
+                serviceId: data.serviceId,
                 clientId: data.clientId,
                 userId,
                 status: data.status ?? 'scheduled',
+            },
+            include: {
+                service: true,
+                client: true,
             },
         });
     }
