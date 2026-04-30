@@ -42,12 +42,62 @@ export class DashboardService {
             a => new Date(a.date) >= todayStart && new Date(a.date) <= todayEnd
         );
 
+        // 📊 últimos 7 dias
+        function getLast7Days() {
+            const days = [];
+
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                d.setHours(0, 0, 0, 0);
+                days.push(d);
+            }
+
+            return days;
+        }
+
+        const days = getLast7Days();
+
+        const revenueByDay = days.map((day) => {
+            const next = new Date(day);
+            next.setDate(day.getDate() + 1);
+
+            const total = appointments
+                .filter(
+                    (a) => new Date(a.date) >= day && new Date(a.date) < next
+                )
+                .reduce((sum, a) => sum + (a.service?.price || 0), 0);
+
+            return {
+                date: day.toISOString().slice(0, 10),
+                total,
+            };
+        });
+
+        // 🥇 serviços mais usados
+        const serviceCount: any = {};
+
+        appointments.forEach((a) => {
+            const name = a.service?.name || "Sem nome";
+
+            serviceCount[name] = (serviceCount[name] || 0) + 1;
+        });
+
+        const topServices = Object.entries(serviceCount).map(
+            ([name, total]) => ({
+                name,
+                total,
+            })
+        );
+
         return {
             todayRevenue,
             monthRevenue,
             totalClients: clients,
             totalAppointments: appointments.length,
             todayAppointments,
+            revenueByDay,
+            topServices,
         };
     }
 }
