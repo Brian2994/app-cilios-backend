@@ -1,98 +1,1370 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# App Cílios Backend — Documentação Técnica
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## Visão Geral
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+O projeto `app-cilios-backend` é uma API backend construída com NestJS para gerenciamento de atendimentos e operações de um sistema voltado para salão/estética.
 
-## Description
+A aplicação segue uma arquitetura modular baseada em módulos do NestJS, separando responsabilidades por domínio.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+# Stack Tecnológica
 
-```bash
-$ npm install
+## Backend
+
+* Node.js
+* TypeScript
+* NestJS
+
+## Banco de Dados
+
+O projeto utiliza PostgreSQL com Prisma ORM.
+
+## Datasource
+
+```prisma
+ datasource db {
+   provider = "postgresql"
+   url      = env("DATABASE_URL")
+ }
 ```
 
-## Compile and run the project
+---
 
-```bash
-# development
-$ npm run start
+# Modelagem de Dados
 
-# watch mode
-$ npm run start:dev
+## User
 
-# production mode
-$ npm run start:prod
+Representa o usuário proprietário da conta/sistema.
+
+### Campos
+
+| Campo     | Tipo     | Descrição           |
+| --------- | -------- | ------------------- |
+| id        | String   | UUID do usuário     |
+| name      | String   | Nome do usuário     |
+| email     | String   | Email único         |
+| password  | String   | Senha criptografada |
+| createdAt | DateTime | Data de criação     |
+
+### Relacionamentos
+
+* 1:N com Client
+* 1:N com Appointment
+* 1:N com Service
+
+---
+
+## Client
+
+Representa clientes cadastrados.
+
+### Campos
+
+| Campo     | Tipo     | Descrição               |
+| --------- | -------- | ----------------------- |
+| id        | String   | UUID                    |
+| name      | String   | Nome do cliente         |
+| phone     | String   | Telefone                |
+| notes     | String?  | Observações             |
+| userId    | String   | Proprietário do cliente |
+| createdAt | DateTime | Data de criação         |
+
+### Relacionamentos
+
+* N:1 com User
+* 1:N com Appointment
+
+---
+
+## Service
+
+Representa serviços oferecidos.
+
+### Campos
+
+| Campo     | Tipo     | Descrição               |
+| --------- | -------- | ----------------------- |
+| id        | String   | UUID                    |
+| name      | String   | Nome do serviço         |
+| price     | Float    | Valor do serviço        |
+| duration  | Int      | Duração em minutos      |
+| userId    | String   | Proprietário do serviço |
+| createdAt | DateTime | Data de criação         |
+
+### Relacionamentos
+
+* N:1 com User
+* 1:N com Appointment
+
+---
+
+## Appointment
+
+Representa os agendamentos.
+
+### Campos
+
+| Campo     | Tipo     | Descrição                |
+| --------- | -------- | ------------------------ |
+| id        | String   | UUID                     |
+| date      | DateTime | Data/hora do atendimento |
+| duration  | Int      | Duração do atendimento   |
+| status    | String   | Status do atendimento    |
+| serviceId | String?  | Serviço relacionado      |
+| clientId  | String   | Cliente relacionado      |
+| userId    | String   | Usuário proprietário     |
+| createdAt | DateTime | Data de criação          |
+
+### Relacionamentos
+
+* N:1 com User
+* N:1 com Client
+* N:1 com Service
+
+---
+
+# Regras de Negócio
+
+## Usuários
+
+* Email deve ser único
+* Usuário é proprietário dos dados
+* Cada usuário possui seus próprios clientes, serviços e agendamentos
+
+## Clientes
+
+* Cliente pertence a um único usuário
+* Cliente pode possuir múltiplos agendamentos
+* Observações são opcionais
+
+## Serviços
+
+* Serviço possui valor monetário
+* Serviço possui duração padrão
+* Serviço pertence a um usuário
+
+## Agendamentos
+
+* Agendamento pertence a um cliente
+* Agendamento pertence a um usuário
+* Serviço pode ser opcional
+* Status padrão é `scheduled`
+* Duração padrão é 60 minutos
+
+---
+
+# Estrutura do Projeto
+
+```txt
+backend/
+├── dist/
+├── node_modules/
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+├── src/
+│   ├── appointment/
+│   ├── auth/
+│   ├── client/
+│   ├── dashboard/
+│   ├── prisma/
+│   ├── service/
+│   ├── app.controller.ts
+│   ├── app.module.ts
+│   ├── app.service.ts
+│   └── main.ts
+├── .env
+├── package.json
+├── package-lock.json
+└── tsconfig.json
 ```
 
-## Run tests
+---
 
-```bash
-# unit tests
-$ npm run test
+# Arquitetura
 
-# e2e tests
-$ npm run test:e2e
+A aplicação utiliza arquitetura modular do NestJS.
 
-# test coverage
-$ npm run test:cov
+Cada domínio possui:
+
+* Controller
+* Service
+* Module
+
+Fluxo padrão:
+
+```txt
+Request → Controller → Service → Prisma → Database
 ```
 
-## Deployment
+---
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+# Módulos
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Auth Module
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+Responsável pela autenticação da aplicação.
+
+### Arquivos
+
+```txt
+src/auth/
+├── auth.controller.ts
+├── auth.module.ts
+├── auth.service.ts
+└── jwt.guard.ts
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Responsabilidades
 
-## Resources
+* Login de usuários
+* Geração de token JWT
+* Proteção de rotas
+* Validação de autenticação
 
-Check out a few resources that may come in handy when working with NestJS:
+### Componentes
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+#### auth.controller.ts
 
-## Support
+Responsável pelos endpoints HTTP relacionados à autenticação.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Exemplos:
 
-## Stay in touch
+* login
+* validação de token
+* registro de usuário
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+#### auth.service.ts
 
-## License
+Contém regras de negócio da autenticação.
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Possíveis responsabilidades:
+
+* validar credenciais
+* gerar JWT
+* comparar senhas
+* buscar usuário
+
+#### jwt.guard.ts
+
+Middleware/Guard responsável por proteger rotas autenticadas.
+
+---
+
+# Client Module
+
+Responsável pelo gerenciamento de clientes.
+
+### Arquivos
+
+```txt
+src/client/
+├── client.controller.ts
+├── client.module.ts
+└── client.service.ts
+```
+
+### Responsabilidades
+
+* Cadastro de clientes
+* Atualização de clientes
+* Busca de clientes
+* Remoção de clientes
+* Histórico de relacionamento
+
+### Fluxo
+
+```txt
+ClientController
+   ↓
+ClientService
+   ↓
+PrismaService
+   ↓
+Database
+```
+
+---
+
+# Service Module
+
+Responsável pelo gerenciamento dos serviços oferecidos.
+
+### Arquivos
+
+```txt
+src/service/
+├── service.controller.ts
+├── service.module.ts
+└── service.service.ts
+```
+
+### Responsabilidades
+
+* Cadastro de serviços
+* Valor dos serviços
+* Duração
+* Atualização de serviços
+* Remoção
+
+---
+
+# Appointment Module
+
+Responsável pelo agendamento.
+
+### Arquivos
+
+```txt
+src/appointment/
+├── appointment.controller.ts
+├── appointment.module.ts
+└── appointment.service.ts
+```
+
+### Responsabilidades
+
+* Criar agendamentos
+* Atualizar agendamentos
+* Cancelar agendamentos
+* Listar agenda
+* Controle de horários
+
+### Regras esperadas
+
+* evitar conflito de horários
+* validar cliente existente
+* validar serviço existente
+* controlar status do atendimento
+
+---
+
+# Dashboard Module
+
+Responsável por métricas e indicadores.
+
+### Arquivos
+
+```txt
+src/dashboard/
+├── dashboard.controller.ts
+├── dashboard.module.ts
+└── dashboard.service.ts
+```
+
+### Responsabilidades
+
+* KPIs
+* Quantidade de atendimentos
+* Receita
+* Clientes cadastrados
+* Relatórios resumidos
+
+---
+
+# Prisma Module
+
+Camada responsável pela comunicação com o banco.
+
+### Arquivos
+
+```txt
+src/prisma/
+├── prisma.module.ts
+└── prisma.service.ts
+```
+
+### Responsabilidades
+
+* Gerenciar conexão com banco
+* Disponibilizar Prisma Client
+* Centralizar acesso aos dados
+
+---
+
+# Arquivos Principais
+
+## main.ts
+
+Ponto de entrada da aplicação.
+
+Responsabilidades:
+
+* inicialização do NestJS
+* configuração global
+* middlewares
+* CORS
+* pipes globais
+* bootstrap da aplicação
+
+---
+
+## app.module.ts
+
+Módulo raiz da aplicação.
+
+Responsável por:
+
+* importar módulos
+* registrar providers
+* centralizar configuração principal
+
+---
+
+# Banco de Dados
+
+O projeto utiliza Prisma ORM.
+
+## Arquivo Principal
+
+```txt
+prisma/schema.prisma
+```
+
+## Responsabilidades do schema
+
+* modelos
+* relacionamentos
+* enums
+* migrations
+* constraints
+
+## Possíveis entidades
+
+Com base na estrutura:
+
+* User
+* Client
+* Service
+* Appointment
+
+---
+
+# Endpoints da API
+
+## Root
+
+### GET /
+
+Health/check básico da aplicação.
+
+#### Response
+
+```json
+"Hello World"
+```
+
+---
+
+# Auth Endpoints
+
+## POST /auth/register
+
+Responsável pelo cadastro de usuários.
+
+### Request
+
+```json
+{
+  "name": "Brian",
+  "email": "brian@email.com",
+  "password": "123456"
+}
+```
+
+### Response Esperada
+
+```json
+{
+  "id": "uuid",
+  "name": "Brian",
+  "email": "brian@email.com"
+}
+```
+
+---
+
+## POST /auth/login
+
+Responsável pela autenticação.
+
+### Request
+
+```json
+{
+  "email": "brian@email.com",
+  "password": "123456"
+}
+```
+
+### Response Esperada
+
+```json
+{
+  "token": "jwt-token"
+}
+```
+
+---
+
+# Client Endpoints
+
+## GET /clients
+
+Lista todos os clientes do usuário autenticado.
+
+### Segurança
+
+* Requer JWT
+
+---
+
+## GET /clients/:id
+
+Busca cliente específico.
+
+### Segurança
+
+* Requer JWT
+
+---
+
+## POST /clients
+
+Cria um novo cliente.
+
+### Request
+
+```json
+{
+  "name": "Maria",
+  "phone": "11999999999",
+  "notes": "Cliente recorrente"
+}
+```
+
+---
+
+## PATCH /clients/:id
+
+Atualiza cliente.
+
+---
+
+## DELETE /clients/:id
+
+Remove cliente.
+
+---
+
+# Service Endpoints
+
+## GET /services
+
+Lista serviços do usuário.
+
+---
+
+## POST /services
+
+Cria serviço.
+
+### Request
+
+```json
+{
+  "name": "Volume Brasileiro",
+  "price": 150,
+  "duration": 120
+}
+```
+
+---
+
+## PATCH /services/:id
+
+Atualiza serviço.
+
+---
+
+## DELETE /services/:id
+
+Remove serviço.
+
+---
+
+# Appointment Endpoints
+
+## GET /appointments
+
+Lista agendamentos.
+
+---
+
+## GET /appointments/:id
+
+Busca agendamento específico.
+
+---
+
+## POST /appointments
+
+Cria agendamento.
+
+### Request
+
+```json
+{
+  "clientId": "uuid-client",
+  "serviceId": "uuid-service",
+  "date": "2026-05-10T14:00:00.000Z",
+  "duration": 120
+}
+```
+
+### Regras
+
+* cliente deve existir
+* serviço deve existir
+* usuário deve ser proprietário
+
+---
+
+## PATCH /appointments/:id
+
+Atualiza agendamento.
+
+---
+
+## DELETE /appointments/:id
+
+Remove agendamento.
+
+---
+
+# Dashboard Endpoints
+
+## GET /dashboard
+
+Retorna métricas gerais.
+
+### Possíveis métricas
+
+* quantidade de clientes
+* quantidade de serviços
+* total de agendamentos
+* faturamento
+* atendimentos recentes
+
+---
+
+# Fluxo de Autenticação
+
+```txt
+Usuário faz login
+        ↓
+AuthController recebe request
+        ↓
+AuthService valida credenciais
+        ↓
+JWT é gerado
+        ↓
+Frontend recebe token
+        ↓
+Rotas protegidas usam JwtGuard
+```
+
+---
+
+# Fluxo de Agendamento
+
+```txt
+Cliente seleciona serviço
+        ↓
+AppointmentController recebe requisição
+        ↓
+AppointmentService valida disponibilidade
+        ↓
+Prisma grava agendamento
+        ↓
+Resposta retornada
+```
+
+---
+
+# Segurança
+
+## JWT
+
+Autenticação baseada em token JWT.
+
+## Guards
+
+Rotas privadas protegidas utilizando `JwtGuard`.
+
+## Recomendações Importantes
+
+### Hash de senha
+
+Atualmente o schema apenas define o campo `password`.
+
+Recomendado:
+
+```ts
+bcrypt.hash(password, 10)
+```
+
+### Validação
+
+Adicionar:
+
+* class-validator
+* ValidationPipe
+* DTOs
+* sanitização
+
+### Segurança HTTP
+
+Adicionar:
+
+* helmet
+* cors configurável
+* rate limit
+* proteção contra brute force
+
+### Tokens
+
+Melhorias sugeridas:
+
+* Refresh Token
+* expiração curta
+* invalidação de sessão
+
+---
+
+# Melhorias Recomendadas
+
+## Arquitetura
+
+* DTOs separados
+* camada de repositories
+* tratamento global de exceções
+* logs estruturados
+* configuração por ambiente
+
+---
+
+## Segurança
+
+* Refresh Token
+* Rate Limiting
+* Helmet
+* Hash de senha com bcrypt
+* RBAC
+
+---
+
+## DevOps
+
+* Docker
+* Docker Compose
+* CI/CD
+* Health Check
+* Observabilidade
+* Logs centralizados
+
+---
+
+## Qualidade
+
+* Testes unitários
+* Testes E2E
+* Swagger
+* ESLint
+* Husky
+* Conventional Commits
+
+---
+
+# Sugestão de Estrutura Enterprise
+
+```txt
+src/
+├── modules/
+├── shared/
+├── config/
+├── common/
+├── database/
+├── infra/
+├── providers/
+├── utils/
+└── main.ts
+```
+
+---
+
+# Variáveis de Ambiente
+
+Arquivo:
+
+```txt
+.env
+```
+
+Exemplo esperado:
+
+```env
+DATABASE_URL=
+JWT_SECRET=
+PORT=
+```
+
+---
+
+# Frontend Integrado
+
+O frontend utiliza React + Vite.
+
+## Principais Bibliotecas
+
+| Biblioteca   | Finalidade              |
+| ------------ | ----------------------- |
+| React        | Interface               |
+| Vite         | Build e desenvolvimento |
+| Axios        | Comunicação HTTP        |
+| FullCalendar | Calendário/agendamentos |
+| Recharts     | Dashboards e gráficos   |
+
+## Possível Fluxo Frontend
+
+```txt
+Frontend React
+      ↓
+Axios
+      ↓
+NestJS API
+      ↓
+Prisma
+      ↓
+PostgreSQL
+```
+
+---
+
+# Scripts Esperados
+
+## Desenvolvimento
+
+```bash
+npm run start:dev
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Produção
+
+```bash
+npm run start:prod
+```
+
+## Prisma
+
+```bash
+npx prisma migrate dev
+npx prisma generate
+```
+
+---
+
+# Análise Técnica dos Services
+
+## AppointmentService
+
+### Pontos Fortes
+
+* Validação de conflito de horários
+* Proteção por `userId`
+* Includes otimizados
+* Ordenação por data
+* Tratamento de exceções
+* Regra de duração padrão
+
+### Regra de Conflito
+
+O sistema valida colisão de horários:
+
+```txt
+Novo horário não pode sobrepor
+outro atendimento existente.
+```
+
+### Algoritmo Atual
+
+```txt
+Busca possíveis conflitos
+        ↓
+Calcula horário final
+        ↓
+Verifica interseção temporal
+```
+
+### Complexidade
+
+A implementação atual está boa para MVP e pequenas cargas.
+
+Para escala maior:
+
+* índice por date
+* filtro por range otimizado
+* validação SQL mais performática
+* Redis cache
+
+### Melhorias Recomendadas
+
+#### Status tipado
+
+Atualmente:
+
+```ts
+status: string
+```
+
+Recomendado:
+
+```ts
+enum AppointmentStatus {
+  scheduled,
+  confirmed,
+  canceled,
+  completed
+}
+```
+
+#### Transações
+
+Usar Prisma Transaction:
+
+```ts
+this.prisma.$transaction()
+```
+
+#### Timezone
+
+Adicionar padronização UTC.
+
+---
+
+## AuthService
+
+### Pontos Fortes
+
+* Hash seguro com bcrypt
+* JWT funcional
+* Verificação de usuário duplicado
+* Tratamento de credenciais inválidas
+* Separação correta de autenticação
+
+### Segurança Atual
+
+#### Hash
+
+```ts
+bcrypt.hash(password, 10)
+```
+
+Boa prática adequada.
+
+#### JWT
+
+Payload atual:
+
+```ts
+{
+  sub,
+  email,
+  name
+}
+```
+
+### Melhorias Recomendadas
+
+#### Refresh Token
+
+Implementar:
+
+* access token curto
+* refresh token
+* logout invalidando sessão
+
+#### Rate Limiting
+
+Proteção contra brute force:
+
+```txt
+/login
+/register
+```
+
+#### Validação de Email
+
+Adicionar validação formal.
+
+---
+
+## ClientService
+
+### Pontos Fortes
+
+* Separação simples
+* Escopo por usuário
+* Ordenação de clientes
+
+### Observação Técnica
+
+A camada de atualização/remoção pode evoluir com validações adicionais de ownership diretamente nas operações finais.
+
+Essa melhoria aumentará ainda mais a segurança e consistência da aplicação.
+
+### Exemplo recomendado
+
+```ts
+where: {
+  id,
+  userId
+}
+```
+
+---
+
+## DashboardService
+
+### Pontos Fortes
+
+* Uso de Promise.all
+* Dashboard agregando métricas
+* Receita diária
+* Receita mensal
+* Serviços mais usados
+* Estatísticas de 7 dias
+
+### Considerações de Escalabilidade
+
+Atualmente:
+
+```txt
+Busca todos os appointments
+na memória.
+```
+
+Para cenários de crescimento elevado, recomenda-se mover parte das agregações diretamente para queries otimizadas no banco.
+
+### Melhorias Recomendadas
+
+#### Agregações SQL
+
+Mover cálculos para banco:
+
+* SUM
+* COUNT
+* GROUP BY
+
+#### Cache
+
+Adicionar:
+
+* Redis
+* cache de dashboard
+* invalidação por evento
+
+#### Queries Otimizadas
+
+Separar:
+
+* métricas rápidas
+* métricas históricas
+* gráficos
+
+---
+
+## ServiceService
+
+### Pontos Fortes
+
+* Validações de preço
+* Conversão numérica
+* Escopo por usuário
+* Tratamento de inexistência
+
+### Melhorias Recomendadas
+
+#### Validação de duração
+
+Adicionar:
+
+```ts
+if(duration <= 0)
+```
+
+#### Soft Delete
+
+Evitar remoção física.
+
+Exemplo:
+
+```ts
+deletedAt: DateTime?
+```
+
+---
+
+# Diferenciais Técnicos do Projeto
+
+## Funcionalidades Reais de Negócio
+
+O sistema já implementa:
+
+* autenticação JWT
+* gerenciamento de clientes
+* gerenciamento de serviços
+* agendamentos
+* prevenção de conflito de horários
+* dashboard analítico
+* controle multiusuário
+* métricas financeiras
+
+---
+
+## Boas Práticas Aplicadas
+
+* separação por domínio
+* arquitetura modular
+* uso de ORM moderno
+* tratamento de exceções
+* isolamento de dados por usuário
+* organização consistente de services/controllers
+
+---
+
+# Qualidade Arquitetural Geral
+
+## Nível Atual do Projeto
+
+O projeto já demonstra:
+
+* arquitetura modular
+* domínio separado
+* autenticação JWT
+* ORM moderno
+* controle de acesso
+* regras de negócio reais
+* tratamento de exceções
+* organização consistente
+
+Isso já ultrapassa muitos projetos CRUD básicos.
+
+---
+
+## Pontos Mais Fortes do Projeto
+
+### 1. Separação por Domínio
+
+Boa organização:
+
+```txt
+appointment/
+auth/
+client/
+dashboard/
+service/
+```
+
+---
+
+### 2. Controle Multiusuário
+
+O uso de:
+
+```ts
+userId
+```
+
+em praticamente todas queries mostra isolamento de dados.
+
+---
+
+### 3. Dashboard Real
+
+O dashboard não é apenas CRUD.
+
+Existe:
+
+* métricas
+* faturamento
+* agregações
+* analytics
+
+---
+
+### 4. Regra de Agenda
+
+A lógica de conflito de horários é um diferencial importante.
+
+---
+
+# Evoluções Técnicas Planejadas
+
+O projeto possui uma base sólida e preparada para evolução contínua.
+
+## Melhorias Futuras
+
+### Tipagem Forte
+
+Planejado:
+
+* DTOs
+* ValidationPipe
+* interfaces tipadas
+* validação centralizada
+
+---
+
+### Documentação
+
+Planejado:
+
+* Swagger/OpenAPI
+* documentação automática
+* exemplos completos de requests/responses
+
+---
+
+### Segurança
+
+Planejado:
+
+* Refresh Tokens
+* Rate Limiting
+* validação avançada
+* proteção adicional HTTP
+
+---
+
+### Escalabilidade
+
+Planejado:
+
+* cache Redis
+* otimização de queries
+* paginação
+* observabilidade
+* logs estruturados
+
+---
+
+### DevOps
+
+Planejado:
+
+* Docker
+* CI/CD
+* monitoramento
+* health checks
+
+---
+
+# Melhorias Arquiteturais Recomendadas
+
+## DTOs
+
+Criar DTOs separados:
+
+```txt
+create-client.dto.ts
+update-client.dto.ts
+create-appointment.dto.ts
+```
+
+## Estrutura Enterprise
+
+```txt
+src/
+├── modules/
+├── shared/
+├── common/
+├── config/
+├── database/
+├── infra/
+├── providers/
+├── utils/
+└── main.ts
+```
+
+## Swagger
+
+Adicionar documentação automática:
+
+```ts
+SwaggerModule.setup('docs', app, document)
+```
+
+## Logs
+
+Adicionar:
+
+* Winston
+* Pino
+* request tracking
+* correlation id
+
+## Testes
+
+Adicionar:
+
+* Jest
+* testes unitários
+* testes E2E
+* cobertura
+
+## Docker
+
+Adicionar:
+
+* Dockerfile
+* docker-compose
+* ambiente PostgreSQL
+* variáveis de ambiente
+
+---
+
+# Escalabilidade
+
+A arquitetura atual permite evolução para:
+
+* multi-tenant
+* microsserviços
+* filas
+* notificações
+* pagamentos
+* auditoria
+* dashboards avançados
+
+---
+
+# Conclusão
+
+O projeto possui uma boa base modular utilizando NestJS + Prisma.
+
+A estrutura atual já segue conceitos modernos de backend:
+
+* separação por domínio
+* services desacoplados
+* autenticação JWT
+* ORM moderno
+* modularização
+
+Com evolução da arquitetura, documentação, testes e DevOps, o sistema pode crescer para um padrão profissional enterprise/SaaS.
